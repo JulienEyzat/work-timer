@@ -1,16 +1,18 @@
 from datetime import datetime
 import tkinter as tk
 from tkinter import ttk
+import time
 import csv
 import os
 
 class work_timer:
     def __init__(self):
         self.time_database_path = "time_database.csv"
-        self.time_database_header = ["time", "project_name"]
+        self.time_database_header = ["time", "project_name", "action_type"]
         self.project_list_database_pah = "project_list_database.csv"
         self.project_list_database_header = ["project_name"]
-        self.end_project_name = "END"
+        self.end_action = "END"
+        self.begin_action = "BEGIN"
         self.root = tk.Tk()
 
         self.init_work_timer()
@@ -44,7 +46,7 @@ class work_timer:
             reader = csv.DictReader(file)
             reader_list = list(reader)
         if len(reader_list) == 0:
-            return {"time": "N/A N/A", "project_name": "N/A"}
+            return {"time": "N/A N/A", "project_name": "N/A", "action_type": "N/A"}
         else:
             return reader_list[-1]
 
@@ -52,9 +54,12 @@ class work_timer:
         active_project_name = self.project_names_combo_box.get()
         return active_project_name
 
-    def write_work_time(self, active_project_name):
+    def write_work_time(self, active_project_name, action_type, last_action_time):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        line = [now, active_project_name]
+        while now == last_action_time:
+            time.sleep(1)
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        line = [now, active_project_name, action_type]
         with open(self.time_database_path, "a") as file:
             writer = csv.writer(file)
             writer.writerow(line)
@@ -62,15 +67,16 @@ class work_timer:
 
     def add_work_time(self):
         last_action = self.get_last_action()
-        if last_action["project_name"] != self.end_project_name:
+        if last_action["action_type"] != self.end_action and last_action["action_type"] != "N/A":
             self.end_work_time()
+        last_action = self.get_last_action()
         active_project_name = self.get_active_project_name()
-        self.write_work_time(active_project_name)
+        self.write_work_time(active_project_name, self.begin_action, last_action['time'])
 
     def end_work_time(self):
         last_action = self.get_last_action()
-        if last_action["project_name"] != self.end_project_name:
-            self.write_work_time(self.end_project_name)
+        if last_action["action_type"] != self.end_action and last_action["action_type"] != "N/A":
+            self.write_work_time(last_action["project_name"], self.end_action, last_action['time'])
 
     # Buttons to add times in the database
     def create_buttons(self):
