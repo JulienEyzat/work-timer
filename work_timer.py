@@ -255,8 +255,8 @@ class work_timer:
     ### Create the agenda of project times
 
     def create_coordinates_lines(self):
-        self.w.create_line(0, self.up_heigth_offset, self.left_width_offset+self.grid_width, self.up_heigth_offset)
-        self.w.create_line(self.left_width_offset, 0, self.left_width_offset, self.up_heigth_offset+self.grid_heigth)
+        self.w.create_line(0, self.up_heigth_offset, self.left_width_offset+self.grid_width, self.up_heigth_offset, width=2)
+        self.w.create_line(self.left_width_offset, 0, self.left_width_offset, self.up_heigth_offset+self.grid_heigth, width=2)
 
     def create_hour_lines(self):
         # Variables to create hour lines
@@ -272,11 +272,13 @@ class work_timer:
             self.w.create_line(self.left_width_offset, y, self.left_width_offset+self.grid_width, y, dash=(10,10))
 
     def create_day_lines(self):
-        weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        start_of_week = self.week_day - timedelta(days=self.week_day.weekday())  # Monday
+        end_of_week = start_of_week + timedelta(days=6)  # Sunday
+        weekdays = [ "%s %s/%s" %(calendar.day_name[my_date.weekday()], my_date.day, my_date.month) for my_date in pd.date_range(start_of_week, end_of_week) ]
         index = 0
         for x in range(self.left_width_offset+self.between_days_range, self.canvas_width-self.right_width_offset, self.between_days_range):
-            self.w.create_line(x, 0, x, self.canvas_height-self.down_heigth_offset)
-            self.w.create_text(x-int(self.between_days_range/2), int(self.up_heigth_offset/2), text=weekdays[index])
+            self.w.create_line(x, 0, x, self.canvas_height-self.down_heigth_offset, tags="day_line")
+            self.w.create_text(x-int(self.between_days_range/2), int(self.up_heigth_offset/2), text=weekdays[index], tags="day_line")
             index+=1
 
     def create_legend(self):
@@ -313,11 +315,15 @@ class work_timer:
 
     def set_prev_week(self):
         self.week_day = self.week_day - timedelta(days=7)
+        self.w.delete("day_line")
+        self.create_day_lines()
         self.w.delete("project_times")
         self.add_all_working_time()
 
     def set_next_week(self):
         self.week_day = self.week_day + timedelta(days=7)
+        self.w.delete("day_line")
+        self.create_day_lines()
         self.w.delete("project_times")
         self.add_all_working_time()
 
