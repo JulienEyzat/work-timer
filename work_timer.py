@@ -86,7 +86,6 @@ class work_timer:
         c = self.conn.cursor()
         c.execute("SELECT * FROM times ORDER BY time DESC LIMIT 1")
         result = c.fetchone()
-        print(result)
         if result is None:
             return {"time": "N/A N/A", "project_name": "N/A", "action_type": "N/A"}
         else:
@@ -117,11 +116,23 @@ class work_timer:
         if last_action["action_type"] != self.end_action and last_action["action_type"] != "N/A":
             self.write_work_time(last_action["project_name"], self.end_action, last_action['time'])
 
+    def get_begin_row_from_time(self, clicked_time):
+        c = self.conn.cursor()
+        c.execute("SELECT * FROM times WHERE Datetime(time) <= Datetime(?) AND action_type = 'BEGIN' ORDER BY Datetime(time) DESC", (clicked_time,))
+        return c.fetchone()
+
+    def get_end_row_from_time(self, clicked_time):
+        c = self.conn.cursor()
+        c.execute("SELECT * FROM times WHERE Datetime(time) >= Datetime(?) AND action_type = 'END' ORDER BY Datetime(time) ASC", (clicked_time,))
+        return c.fetchone()
+
     ### Process data
 
     def create_summary_table(self):
         # Read the time database
         time_df = pd.read_sql_query("SELECT * FROM times", self.conn)
+        if time_df.empty:
+            return None
         time_df["time"] = pd.to_datetime(time_df["time"])
         # Get the begining time and ending time on the same line to get the time range
         time_df["last_time"] = time_df["time"].shift()
@@ -158,7 +169,8 @@ class work_timer:
         project_names = self.get_project_names()
         self.project_names_combo_box = ttk.Combobox(self.root, state='readonly', values=project_names)
         self.project_names_combo_box.grid(row=2, column=1, columnspan=2)
-        self.project_names_combo_box.current(0)
+        if project_names:
+            self.project_names_combo_box.current(0)
 
     def add_project(self):
         # Get the new project_name
@@ -263,6 +275,9 @@ class work_timer:
 
     def create_summary_table_tree(self):
         time_df = self.create_summary_table()
+        if time_df is None:
+            messagebox.showerror("Error", "The time database is empty")
+            return
 
         # Create a new window
         summary_window = tk.Toplevel(self.root)
@@ -342,7 +357,7 @@ class work_timer:
         df["last_time"] = df["time"].shift()
         df = df[ df["action_type"] == "END" ]
         for row in df.itertuples(index=False):
-            self.add_working_time(row.time, row.last_time, row.time.replace(hour=6, minute=0, second=0), row.last_time.replace(hour=20, minute=0, second=0), row.time.weekday(), self.project_color_dict[row.project_name])
+            self.add_working_time(row.last_time, row.time, row.time.replace(hour=6, minute=0, second=0), row.last_time.replace(hour=20, minute=0, second=0), row.time.weekday(), self.project_color_dict[row.project_name])
 
     def set_prev_week(self):
         self.week_day = self.week_day - timedelta(days=7)
@@ -357,6 +372,75 @@ class work_timer:
         self.create_day_lines()
         self.w.delete("project_times")
         self.add_all_working_time()
+
+    def modify_times(self, event):
+
+        # Get current time
+        x, y = event.x, event.y
+        # Get the current day
+        start_of_week = self.week_day.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=self.week_day.weekday())
+        number_of_day_in_week = int((x-self.left_width_offset)/self.between_days_range)
+        clicked_day = start_of_week + timedelta(days=number_of_day_in_week)
+        # Get the current hour
+        first_hour = timedelta(hours=6)
+        last_hour = timedelta(hours=20)
+        clicked_hour = first_hour + ((last_hour-first_hour)*(y-self.up_heigth_offset))/(self.grid_heigth)
+        # Merge in the current time
+        clicked_time = clicked_day + clicked_hour
+
+        # Get associated rows
+        begin_row = self.get_begin_row_from_time(clicked_time)
+        end_row = self.get_end_row_from_time(clicked_time)
+
+        # Create window with these infos
+        top = tk.Toplevel(self.w)
+        top.title("Modify project time")
+
+        # Project name
+        initial_project_name_strvar = tk.StringVar()
+        initial_project_name_strvar.set(begin_row["project_name"])
+        self.initial_project_name_entry = tk.Entry(top, textvariable=initial_project_name_strvar)
+        self.initial_project_name_entry.grid(row=1, column=1, columnspan=5)
+
+        # Begin hour
+        begin_hour_row = 2
+        begin_hour_strvar = tk.StringVar()
+        begin_hour_strvar.set(begin_row["time"].split(" ")[1].split(":")[0])
+        self.begin_hour_entry = tk.Entry(top, width=2, textvariable=begin_hour_strvar)
+        self.begin_hour_entry.grid(row=begin_hour_row, column=1)
+        self.begin_hour_label = tk.Label(top, text=":")
+        self.begin_hour_label.grid(row=begin_hour_row, column=2)
+        begin_minute_strvar = tk.StringVar()
+        begin_minute_strvar.set(begin_row["time"].split(" ")[1].split(":")[1])
+        self.begin_minute_entry = tk.Entry(top, width=2, textvariable=begin_minute_strvar)
+        self.begin_minute_entry.grid(row=begin_hour_row, column=3)
+        self.begin_minute_label = tk.Label(top, text=":")
+        self.begin_minute_label.grid(row=begin_hour_row, column=4)
+        begin_second_strvar = tk.StringVar()
+        begin_second_strvar.set(begin_row["time"].split(" ")[1].split(":")[2])
+        self.begin_second_entry = tk.Entry(top, width=2, textvariable=begin_second_strvar)
+        self.begin_second_entry.grid(row=begin_hour_row, column=5)
+
+        # end hour
+        end_hour_row = 3
+        end_hour_strvar = tk.StringVar()
+        end_hour_strvar.set(end_row["time"].split(" ")[1].split(":")[0])
+        self.end_hour_entry = tk.Entry(top, width=2, textvariable=end_hour_strvar)
+        self.end_hour_entry.grid(row=end_hour_row, column=1)
+        self.end_hour_label = tk.Label(top, text=":")
+        self.end_hour_label.grid(row=end_hour_row, column=2)
+        end_minute_strvar = tk.StringVar()
+        end_minute_strvar.set(end_row["time"].split(" ")[1].split(":")[1])
+        self.end_minute_entry = tk.Entry(top, width=2, textvariable=end_minute_strvar)
+        self.end_minute_entry.grid(row=end_hour_row, column=3)
+        self.end_minute_label = tk.Label(top, text=":")
+        self.end_minute_label.grid(row=end_hour_row, column=4)
+        end_second_strvar = tk.StringVar()
+        end_second_strvar.set(end_row["time"].split(" ")[1].split(":")[2])
+        self.end_second_entry = tk.Entry(top, width=2, textvariable=end_second_strvar)
+        self.end_second_entry.grid(row=end_hour_row, column=5)
+
+
 
     def create_calendar(self):
         top = tk.Toplevel(self.root)
@@ -377,6 +461,8 @@ class work_timer:
         self.create_legend()
 
         self.add_all_working_time()
+
+        self.w.tag_bind("project_times", '<ButtonPress-1>', self.modify_times)
 
     ### Start
 
