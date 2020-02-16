@@ -126,6 +126,39 @@ class work_timer:
         c.execute("SELECT * FROM times WHERE Datetime(time) >= Datetime(?) AND action_type = 'END' ORDER BY Datetime(time) ASC", (clicked_time,))
         return c.fetchone()
 
+    def modify_time_row(self):
+        # Get the new values
+        project_name = self.initial_project_name_entry.get()
+        row_date = self.date_entry.cget("text")
+        begin_hour = self.begin_hour_entry.get()
+        begin_minute = self.begin_minute_entry.get()
+        begin_second = self.begin_second_entry.get()
+        begin_time = "%s %s:%s:%s" %(row_date, begin_hour, begin_minute, begin_second)
+        end_hour = self.end_hour_entry.get()
+        end_minute = self.end_minute_entry.get()
+        end_second = self.end_second_entry.get()
+        end_time = "%s %s:%s:%s" %(row_date, end_hour, end_minute, end_second)
+
+        # Get all the project names
+        project_names = self.get_project_names()
+        if not project_name in project_names:
+            messagebox.showerror("Error", "%s is not in the database" %(project_name))
+        else:
+            # Insert the new values in the database
+            c = self.conn.cursor()
+            c.execute("UPDATE times SET project_name = ?, time = ? WHERE project_name = ? AND time = ? AND action_type = 'BEGIN';", (project_name, begin_time, self.begin_row["project_name"], self.begin_row["time"]))
+            c.execute("UPDATE times SET project_name = ?, time = ? WHERE project_name = ? AND time = ? AND action_type = 'END';", (project_name, end_time, self.end_row["project_name"], self.end_row["time"]))
+            self.conn.commit()
+
+            # Update the canvas
+            self.w.delete("legend")
+            self.create_legend()
+            self.w.delete("project_times")
+            self.add_all_working_time()
+
+            # Remove the window
+            self.modify_times_window.destroy()
+
     ### Process data
 
     def create_summary_table(self):
@@ -334,8 +367,8 @@ class work_timer:
         for project_name in project_names:
             self.project_color_dict[project_name] = self.project_colors[index]
             height_space = 20
-            self.w.create_rectangle(self.canvas_width-self.right_width_offset+10, index*height_space+100, self.canvas_width-self.right_width_offset+30, 110+index*height_space, fill=self.project_color_dict[project_name])
-            self.w.create_text(self.canvas_width-self.right_width_offset+35, 105+index*height_space, text=project_name, anchor="w")
+            self.w.create_rectangle(self.canvas_width-self.right_width_offset+10, index*height_space+100, self.canvas_width-self.right_width_offset+30, 110+index*height_space, fill=self.project_color_dict[project_name], tags="legend")
+            self.w.create_text(self.canvas_width-self.right_width_offset+35, 105+index*height_space, text=project_name, anchor="w", tags="legend")
             index+=1
 
     def add_working_time(self, first_project_date, last_project_date, first_day_date, last_day_date, day_int, color):
@@ -389,56 +422,64 @@ class work_timer:
         clicked_time = clicked_day + clicked_hour
 
         # Get associated rows
-        begin_row = self.get_begin_row_from_time(clicked_time)
-        end_row = self.get_end_row_from_time(clicked_time)
+        self.begin_row = self.get_begin_row_from_time(clicked_time)
+        self.end_row = self.get_end_row_from_time(clicked_time)
 
         # Create window with these infos
-        top = tk.Toplevel(self.w)
-        top.title("Modify project time")
+        self.modify_times_window = tk.Toplevel(self.w)
+        self.modify_times_window.title("Modify project time")
+
+        # Project date
+        self.date_entry = tk.Label(self.modify_times_window, text=self.begin_row["time"].split(" ")[0])
+        self.date_entry.grid(row=1, column=1, columnspan=5)
 
         # Project name
         initial_project_name_strvar = tk.StringVar()
-        initial_project_name_strvar.set(begin_row["project_name"])
-        self.initial_project_name_entry = tk.Entry(top, textvariable=initial_project_name_strvar)
-        self.initial_project_name_entry.grid(row=1, column=1, columnspan=5)
+        initial_project_name_strvar.set(self.begin_row["project_name"])
+        self.initial_project_name_entry = tk.Entry(self.modify_times_window, textvariable=initial_project_name_strvar)
+        self.initial_project_name_entry.grid(row=2, column=1, columnspan=5)
 
         # Begin hour
-        begin_hour_row = 2
+        begin_hour_row = 3
         begin_hour_strvar = tk.StringVar()
-        begin_hour_strvar.set(begin_row["time"].split(" ")[1].split(":")[0])
-        self.begin_hour_entry = tk.Entry(top, width=2, textvariable=begin_hour_strvar)
+        begin_hour_strvar.set(self.begin_row["time"].split(" ")[1].split(":")[0])
+        self.begin_hour_entry = tk.Entry(self.modify_times_window, width=2, textvariable=begin_hour_strvar)
         self.begin_hour_entry.grid(row=begin_hour_row, column=1)
-        self.begin_hour_label = tk.Label(top, text=":")
+        self.begin_hour_label = tk.Label(self.modify_times_window, text=":")
         self.begin_hour_label.grid(row=begin_hour_row, column=2)
         begin_minute_strvar = tk.StringVar()
-        begin_minute_strvar.set(begin_row["time"].split(" ")[1].split(":")[1])
-        self.begin_minute_entry = tk.Entry(top, width=2, textvariable=begin_minute_strvar)
+        begin_minute_strvar.set(self.begin_row["time"].split(" ")[1].split(":")[1])
+        self.begin_minute_entry = tk.Entry(self.modify_times_window, width=2, textvariable=begin_minute_strvar)
         self.begin_minute_entry.grid(row=begin_hour_row, column=3)
-        self.begin_minute_label = tk.Label(top, text=":")
+        self.begin_minute_label = tk.Label(self.modify_times_window, text=":")
         self.begin_minute_label.grid(row=begin_hour_row, column=4)
         begin_second_strvar = tk.StringVar()
-        begin_second_strvar.set(begin_row["time"].split(" ")[1].split(":")[2])
-        self.begin_second_entry = tk.Entry(top, width=2, textvariable=begin_second_strvar)
+        begin_second_strvar.set(self.begin_row["time"].split(" ")[1].split(":")[2])
+        self.begin_second_entry = tk.Entry(self.modify_times_window, width=2, textvariable=begin_second_strvar)
         self.begin_second_entry.grid(row=begin_hour_row, column=5)
 
         # end hour
-        end_hour_row = 3
+        end_hour_row = 4
         end_hour_strvar = tk.StringVar()
-        end_hour_strvar.set(end_row["time"].split(" ")[1].split(":")[0])
-        self.end_hour_entry = tk.Entry(top, width=2, textvariable=end_hour_strvar)
+        end_hour_strvar.set(self.end_row["time"].split(" ")[1].split(":")[0])
+        self.end_hour_entry = tk.Entry(self.modify_times_window, width=2, textvariable=end_hour_strvar)
         self.end_hour_entry.grid(row=end_hour_row, column=1)
-        self.end_hour_label = tk.Label(top, text=":")
+        self.end_hour_label = tk.Label(self.modify_times_window, text=":")
         self.end_hour_label.grid(row=end_hour_row, column=2)
         end_minute_strvar = tk.StringVar()
-        end_minute_strvar.set(end_row["time"].split(" ")[1].split(":")[1])
-        self.end_minute_entry = tk.Entry(top, width=2, textvariable=end_minute_strvar)
+        end_minute_strvar.set(self.end_row["time"].split(" ")[1].split(":")[1])
+        self.end_minute_entry = tk.Entry(self.modify_times_window, width=2, textvariable=end_minute_strvar)
         self.end_minute_entry.grid(row=end_hour_row, column=3)
-        self.end_minute_label = tk.Label(top, text=":")
+        self.end_minute_label = tk.Label(self.modify_times_window, text=":")
         self.end_minute_label.grid(row=end_hour_row, column=4)
         end_second_strvar = tk.StringVar()
-        end_second_strvar.set(end_row["time"].split(" ")[1].split(":")[2])
-        self.end_second_entry = tk.Entry(top, width=2, textvariable=end_second_strvar)
+        end_second_strvar.set(self.end_row["time"].split(" ")[1].split(":")[2])
+        self.end_second_entry = tk.Entry(self.modify_times_window, width=2, textvariable=end_second_strvar)
         self.end_second_entry.grid(row=end_hour_row, column=5)
+
+        # Change button
+        modify_button = tk.Button(self.modify_times_window, text="Update", command=self.modify_time_row)
+        modify_button.grid(row=5, column=1, columnspan=5)
 
 
 
