@@ -18,14 +18,13 @@ class work_timer:
         # Constants
         self.time_database_path = "time_database.csv"
         self.time_database_header = ["time", "project_name", "action_type"]
-        self.project_list_database_pah = "project_list_database.csv"
-        self.project_list_database_header = ["project_name"]
         self.database_path = "work_timer.db"
         self.end_action = "END"
         self.begin_action = "BEGIN"
 
         # Database connection
         self.conn = sqlite3.connect(self.database_path)
+        self.conn.row_factory = sqlite3.Row
 
         ### Tkinter canvas constants
         self.canvas_width = 1280
@@ -57,71 +56,41 @@ class work_timer:
         self.root = tk.Tk()
         self.root.title("Work Timer")
 
-        self.init_work_timer()
+        self.create_database_tables()
 
     ### Manage databases
 
-    def create_time_database(self):
-        with open(self.time_database_path, "w") as file:
-            writer = csv.writer(file)
-            writer.writerow(self.time_database_header)
-
-    def create_project_list_database(self):
-        with open(self.project_list_database_pah, "w") as file:
-            writer = csv.writer(file)
-            writer.writerow(self.project_list_database_header)
-
     def create_database_tables(self):
         c = self.conn.cursor()
-        c.execute("CREATE TABLE project_names (project_name text)")
-        c.execute("CREATE TABLE times (time text, project_name text, action_type text)")
+        c.execute("CREATE TABLE IF NOT EXISTS project_names (project_name text)")
+        c.execute("CREATE TABLE IF NOT EXISTS times (time text, project_name text, action_type text)")
         self.conn.commit()
 
-    def add_project_name_in_database(self):
-        # Get the project_name
-        project_name = None
-        # Add the project_name
+    def add_project_name_in_database(self, project_name):
         c = self.conn.cursor()
         c.execute("INSERT INTO project_names VALUES (?)", (project_name,))
         self.conn.commit()
 
-    def remove_project_name_in_database(self):
-        # Get the project_name
-        project_name = None
-        # Add the project_name
+    def remove_project_name_in_database(self, project_name):
         c = self.conn.cursor()
         c.execute("DELETE FROM project_names WHERE project_name=?", (project_name,))
         self.conn.commit()
 
-    def init_work_timer(self):
-        if not os.path.isfile(self.time_database_path):
-            self.create_time_database()
-        if not os.path.isfile(self.project_list_database_pah):
-            self.create_project_list_database()
-
     def get_project_names(self):
-        project_names = []
-        with open(self.project_list_database_pah, "r") as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                project_names.append(row[self.project_list_database_header[0]])
+        c = self.conn.cursor()
+        c.execute("SELECT project_name FROM project_names")
+        project_names = [ values[0] for values in c.fetchall() ]
         return project_names
 
-    def is_project_name_database_empty(self):
-        project_names = self.get_project_names()
-        if project_names:
-            return False
-        else:
-            return True
-
     def get_last_action(self):
-        with open(self.time_database_path, "r") as file:
-            reader = csv.DictReader(file)
-            reader_list = list(reader)
-        if len(reader_list) == 0:
+        c = self.conn.cursor()
+        c.execute("SELECT * FROM times ORDER BY time DESC LIMIT 1")
+        result = c.fetchone()
+        print(result)
+        if result is None:
             return {"time": "N/A N/A", "project_name": "N/A", "action_type": "N/A"}
         else:
-            return reader_list[-1]
+            return result
 
     def get_active_project_name(self):
         active_project_name = self.project_names_combo_box.get()
@@ -130,9 +99,9 @@ class work_timer:
     def write_work_time(self, active_project_name, action_type, last_action_time):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         line = [now, active_project_name, action_type]
-        with open(self.time_database_path, "a") as file:
-            writer = csv.writer(file)
-            writer.writerow(line)
+        c = self.conn.cursor()
+        c.execute("INSERT INTO times VALUES (?, ?, ?)", line)
+        self.conn.commit()
         self.update_last_action_labels(now, active_project_name)
 
     def add_work_time(self):
@@ -152,7 +121,7 @@ class work_timer:
 
     def create_summary_table(self):
         # Read the time database
-        time_df = pd.read_csv(self.time_database_path)
+        time_df = pd.read_sql_query("SELECT * FROM times", self.conn)
         time_df["time"] = pd.to_datetime(time_df["time"])
         # Get the begining time and ending time on the same line to get the time range
         time_df["last_time"] = time_df["time"].shift()
@@ -191,39 +160,101 @@ class work_timer:
         self.project_names_combo_box.grid(row=2, column=1, columnspan=2)
         self.project_names_combo_box.current(0)
 
+    def add_project(self):
+        # Get the new project_name
+        project_name = self.add_project_entry.get().strip()
+        # Get the previous project names
+        current_project_names = self.get_project_names()
+        if project_name in current_project_names:
+            messagebox.showerror("Error", "%s is already in the database" %(project_name))
+        elif not project_name:
+            messagebox.showerror("Error", "The project name is empty")
+        else:
+            # Add the project name in the database
+            self.add_project_name_in_database(project_name)
+            # Update the list of project names
+            project_names = self.get_project_names()
+            self.project_names_combo_box.config(values=project_names)
+            # Destroy the window
+            self.add_project_window.destroy()
+
+    def create_add_project_window(self):
+        # Create a new window
+        self.add_project_window = tk.Toplevel(self.root)
+        self.add_project_window.title("Add project")
+
+        self.add_project_entry = tk.Entry(self.add_project_window)
+        self.add_project_entry.grid()
+
+        add_button = tk.Button(self.add_project_window, text="Add", command=self.add_project)
+        add_button.grid()
+
+    def remove_project(self):
+        # Get the project_name
+        project_name = self.remove_project_entry.get()
+        # Get the previous project names
+        current_project_names = self.get_project_names()
+        if not project_name in current_project_names:
+            messagebox.showerror("Error", "%s is not in the database" %(project_name))
+        else:
+            # Remove the project name in the database
+            self.remove_project_name_in_database(project_name)
+            # Update the list of project names
+            project_names = self.get_project_names()
+            self.project_names_combo_box.config(values=project_names)
+            # Destroy the window
+            self.remove_project_window.destroy()
+
+    def create_remove_project_window(self):
+        # Create a new window
+        self.remove_project_window = tk.Toplevel(self.root)
+        self.remove_project_window.title("Remove project")
+
+        self.remove_project_entry = tk.Entry(self.remove_project_window)
+        self.remove_project_entry.grid()
+
+        remove_button = tk.Button(self.remove_project_window, text="Remove", command=self.remove_project)
+        remove_button.grid()
+
+    def create_project_list_buttons(self):
+        self.add_project_button = tk.Button(self.root, text="Add", command=self.create_add_project_window)
+        self.add_project_button.grid(row=3,column=1)
+        self.remove_project_button = tk.Button(self.root, text="Remove", command=self.create_remove_project_window)
+        self.remove_project_button.grid(row=3,column=2)
+
     def create_last_action_labels(self):
         last_action = self.get_last_action()
         self.last_action_label = tk.Label(self.root, text="Last update :")
-        self.last_action_label.grid(row=3, column=1, columnspan=2)
+        self.last_action_label.grid(row=4, column=1, columnspan=2)
 
         self.last_action_date_label = tk.Label(self.root, text="Date :")
-        self.last_action_date_label.grid(row=4, column=1, columnspan=1, sticky="e")
+        self.last_action_date_label.grid(row=5, column=1, columnspan=1, sticky="e")
         self.last_action_date_var = tk.StringVar()
         self.last_action_date_var.set(last_action["time"].split(" ")[0])
         self.last_action_date_value_label = tk.Label(self.root, textvariable=self.last_action_date_var)
-        self.last_action_date_value_label.grid(row=4, column=2, columnspan=1, sticky="w")
+        self.last_action_date_value_label.grid(row=5, column=2, columnspan=1, sticky="w")
 
         self.last_action_time_label = tk.Label(self.root, text="Time :")
-        self.last_action_time_label.grid(row=5, column=1, columnspan=1, sticky="e")
+        self.last_action_time_label.grid(row=6, column=1, columnspan=1, sticky="e")
         self.last_action_time_var = tk.StringVar()
         self.last_action_time_var.set(last_action["time"].split(" ")[1])
         self.last_action_time_value_label = tk.Label(self.root, textvariable=self.last_action_time_var)
-        self.last_action_time_value_label.grid(row=5, column=2, columnspan=1, sticky="w")
+        self.last_action_time_value_label.grid(row=6, column=2, columnspan=1, sticky="w")
 
         self.last_action_project_label = tk.Label(self.root, text="Project :")
-        self.last_action_project_label.grid(row=6, column=1, columnspan=1, sticky="e")
+        self.last_action_project_label.grid(row=7, column=1, columnspan=1, sticky="e")
         self.last_action_project_var = tk.StringVar()
         self.last_action_project_var.set(last_action["project_name"])
         self.last_action_project_value_label = tk.Label(self.root, textvariable=self.last_action_project_var)
-        self.last_action_project_value_label.grid(row=6, column=2, columnspan=1, sticky="w")
+        self.last_action_project_value_label.grid(row=7, column=2, columnspan=1, sticky="w")
 
     def create_summary_button(self):
         self.summary_button = tk.Button(self.root, text="Summary", command=self.create_summary_table_tree)
-        self.summary_button.grid(row=7, column=1, columnspan=2)
+        self.summary_button.grid(row=8, column=1, columnspan=2)
 
     def create_calendar_button(self):
         self.summary_button = tk.Button(self.root, text="Calendar", command=self.create_calendar)
-        self.summary_button.grid(row=8, column=1, columnspan=2)
+        self.summary_button.grid(row=9, column=1, columnspan=2)
 
     def update_last_action_labels(self, time, project_name):
         self.last_action_date_var.set(time.split(" ")[0])
@@ -282,7 +313,7 @@ class work_timer:
             index+=1
 
     def create_legend(self):
-        df = pd.read_csv(self.time_database_path)
+        df = pd.read_sql_query("SELECT * FROM times", self.conn)
         project_names = df["project_name"].unique()
         index = 0
         for project_name in project_names:
@@ -298,7 +329,7 @@ class work_timer:
         self.w.create_rectangle(self.left_width_offset+day_int*self.between_days_range+10, begin_time_first, self.left_width_offset+(day_int+1)*self.between_days_range-10, last_time_first, fill=color, tags="project_times")
 
     def add_all_working_time(self):
-        df = pd.read_csv(self.time_database_path)
+        df = pd.read_sql_query("SELECT * FROM times", self.conn)
         df["time"] = pd.to_datetime(df["time"])
 
         # Only keep the current week
@@ -350,11 +381,9 @@ class work_timer:
     ### Start
 
     def start(self):
-        if self.is_project_name_database_empty():
-            messagebox.showerror("Error", "The project database is empty")
-            sys.exit(1)
         self.create_buttons()
         self.create_project_list()
+        self.create_project_list_buttons()
         self.create_last_action_labels()
         self.create_summary_button()
         self.create_calendar_button()
