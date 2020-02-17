@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from tkcalendar import Calendar
 from matplotlib import cm
 from matplotlib import colors
 import calendar
@@ -15,9 +14,7 @@ import os
 
 class work_timer:
     def __init__(self):
-        # Constants
-        self.time_database_path = "time_database.csv"
-        self.time_database_header = ["time", "project_name", "action_type"]
+        # Constants$
         self.database_path = "work_timer.db"
         self.end_action = "END"
         self.begin_action = "BEGIN"
@@ -126,38 +123,20 @@ class work_timer:
         c.execute("SELECT * FROM times WHERE Datetime(time) >= Datetime(?) AND action_type = 'END' ORDER BY Datetime(time) ASC", (clicked_time,))
         return c.fetchone()
 
-    def modify_time_row(self):
-        # Get the new values
-        project_name = self.initial_project_name_entry.get()
-        row_date = self.date_entry.cget("text")
-        begin_hour = self.begin_hour_entry.get()
-        begin_minute = self.begin_minute_entry.get()
-        begin_second = self.begin_second_entry.get()
-        begin_time = "%s %s:%s:%s" %(row_date, begin_hour, begin_minute, begin_second)
-        end_hour = self.end_hour_entry.get()
-        end_minute = self.end_minute_entry.get()
-        end_second = self.end_second_entry.get()
-        end_time = "%s %s:%s:%s" %(row_date, end_hour, end_minute, end_second)
+    def update_row(self, new_project_name, new_time, old_project_name, old_time, action_type):
+        c = self.conn.cursor()
+        c.execute("UPDATE times SET project_name = ?, time = ? WHERE project_name = ? AND time = ? AND action_type = ?;", (new_project_name, new_time, old_project_name, old_time, action_type))
+        self.conn.commit()
 
-        # Get all the project names
-        project_names = self.get_project_names()
-        if not project_name in project_names:
-            messagebox.showerror("Error", "%s is not in the database" %(project_name))
-        else:
-            # Insert the new values in the database
-            c = self.conn.cursor()
-            c.execute("UPDATE times SET project_name = ?, time = ? WHERE project_name = ? AND time = ? AND action_type = 'BEGIN';", (project_name, begin_time, self.begin_row["project_name"], self.begin_row["time"]))
-            c.execute("UPDATE times SET project_name = ?, time = ? WHERE project_name = ? AND time = ? AND action_type = 'END';", (project_name, end_time, self.end_row["project_name"], self.end_row["time"]))
-            self.conn.commit()
+    def delete_row(self, project_name, time, action_type):
+        c = self.conn.cursor()
+        c.execute("DELETE FROM times WHERE project_name = ? AND time = ? AND action_type = ?;", (project_name, time, action_type))
+        self.conn.commit()
 
-            # Update the canvas
-            self.w.delete("legend")
-            self.create_legend()
-            self.w.delete("project_times")
-            self.add_all_working_time()
-
-            # Remove the window
-            self.modify_times_window.destroy()
+    def create_row(self, project_name, time, action_type):
+        c = self.conn.cursor()
+        c.execute("INSERT INTO times VALUES (?, ?, ?)", (project_name, time, action_type))
+        self.conn.commit()
 
     ### Process data
 
@@ -212,16 +191,19 @@ class work_timer:
         current_project_names = self.get_project_names()
         if project_name in current_project_names:
             messagebox.showerror("Error", "%s is already in the database" %(project_name))
+            return
         elif not project_name:
             messagebox.showerror("Error", "The project name is empty")
-        else:
-            # Add the project name in the database
-            self.add_project_name_in_database(project_name)
-            # Update the list of project names
-            project_names = self.get_project_names()
-            self.project_names_combo_box.config(values=project_names)
-            # Destroy the window
-            self.add_project_window.destroy()
+            return
+
+        # Add the project name in the database
+        self.add_project_name_in_database(project_name)
+        # Update the list of project names
+        project_names = self.get_project_names()
+        self.project_names_combo_box.config(values=project_names)
+        self.project_names_combo_box.current(len(project_names)-1)
+        # Destroy the window
+        self.add_project_window.destroy()
 
     def create_add_project_window(self):
         # Create a new window
@@ -236,27 +218,42 @@ class work_timer:
 
     def remove_project(self):
         # Get the project_name
-        project_name = self.remove_project_entry.get()
+        project_name = self.remove_project_combo_box.get()
         # Get the previous project names
         current_project_names = self.get_project_names()
         if not project_name in current_project_names:
             messagebox.showerror("Error", "%s is not in the database" %(project_name))
+            return
+
+        # Remove the project name in the database
+        self.remove_project_name_in_database(project_name)
+        # Update the list of project names
+        project_names = self.get_project_names()
+        self.project_names_combo_box.config(values=project_names)
+        if project_names:
+            self.project_names_combo_box.current(0)
         else:
-            # Remove the project name in the database
-            self.remove_project_name_in_database(project_name)
-            # Update the list of project names
-            project_names = self.get_project_names()
-            self.project_names_combo_box.config(values=project_names)
-            # Destroy the window
-            self.remove_project_window.destroy()
+            self.project_names_combo_box.set("")
+        # Destroy the window
+        self.remove_project_window.destroy()
 
     def create_remove_project_window(self):
+
+        # Check if there is projects to remove
+        project_names = self.get_project_names()
+        if not project_names:
+            messagebox.showerror("Error", "There is no project yet")
+            return
+
         # Create a new window
         self.remove_project_window = tk.Toplevel(self.root)
         self.remove_project_window.title("Remove project")
 
-        self.remove_project_entry = tk.Entry(self.remove_project_window)
-        self.remove_project_entry.grid()
+        project_names = self.get_project_names()
+        self.remove_project_combo_box = ttk.Combobox(self.remove_project_window, state='readonly', values=project_names)
+        self.remove_project_combo_box.grid()
+        if project_names:
+            self.remove_project_combo_box.current(0)
 
         remove_button = tk.Button(self.remove_project_window, text="Remove", command=self.remove_project)
         remove_button.grid()
@@ -406,9 +403,54 @@ class work_timer:
         self.w.delete("project_times")
         self.add_all_working_time()
 
+    def modify_time_row(self, modify_type):
+        # Get the new values
+        project_name = self.initial_project_name_entry.get()
+        row_date = self.date_entry.cget("text")
+        begin_hour = self.begin_hour_entry.get()
+        begin_minute = self.begin_minute_entry.get()
+        begin_second = self.begin_second_entry.get()
+        begin_time = "%s %s:%s:%s" %(row_date, begin_hour, begin_minute, begin_second)
+        end_hour = self.end_hour_entry.get()
+        end_minute = self.end_minute_entry.get()
+        end_second = self.end_second_entry.get()
+        end_time = "%s %s:%s:%s" %(row_date, end_hour, end_minute, end_second)
+
+        # Get all the project names
+        project_names = self.get_project_names()
+        if not project_name in project_names:
+            messagebox.showerror("Error", "%s is not in the database" %(project_name))
+            return
+
+        # Modify the database
+        if modify_type == "update":
+            self.update_row(project_name, begin_time, self.begin_row["project_name"], self.begin_row["time"], "BEGIN")
+            self.update_row(project_name, end_time, self.end_row["project_name"], self.end_row["time"], "END")
+        elif modify_type == "remove":
+            self.delete_row(project_name, begin_time, "BEGIN")
+            self.delete_row(project_name, end_time, "END")
+
+        # Update the canvas
+        self.w.delete("legend")
+        self.create_legend()
+        self.w.delete("project_times")
+        self.add_all_working_time()
+
+        # Remove the window
+        self.modify_times_window.destroy()
+
+    def add_time_row(self):
+        pass
+
+    def remove_time_row(self):
+        self.modify_time_row("remove")
+
+    def update_time_row(self):
+        self.modify_time_row("update")
+
     def modify_times(self, event):
 
-        # Get current time
+        # Get clicked time
         x, y = event.x, event.y
         # Get the current day
         start_of_week = self.week_day.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=self.week_day.weekday())
@@ -478,10 +520,12 @@ class work_timer:
         self.end_second_entry.grid(row=end_hour_row, column=5)
 
         # Change button
-        modify_button = tk.Button(self.modify_times_window, text="Update", command=self.modify_time_row)
+        modify_button = tk.Button(self.modify_times_window, text="Update", command=self.update_time_row)
         modify_button.grid(row=5, column=1, columnspan=5)
 
-
+        # Delete button
+        modify_button = tk.Button(self.modify_times_window, text="Delete", command=self.remove_time_row)
+        modify_button.grid(row=6, column=1, columnspan=5)
 
     def create_calendar(self):
         top = tk.Toplevel(self.root)
