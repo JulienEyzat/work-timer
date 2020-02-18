@@ -47,7 +47,7 @@ class work_timer:
         self.between_days_range = int(self.grid_width/total_days)
 
         # Today (for calendar)
-        self.week_day = datetime.today()
+        self.reference_day = datetime.today()
 
         # Tkinter
         self.root = tk.Tk()
@@ -96,11 +96,15 @@ class work_timer:
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         line = [now, active_project_name, action_type]
         c = self.conn.cursor()
-        c.execute("INSERT INTO times VALUES (?, ?, ?)", line)
+        c.execute("INSERT INTO times (time, project_name, action_type) VALUES (?, ?, ?)", line)
         self.conn.commit()
         self.update_last_action_labels(now, active_project_name)
 
     def add_work_time(self):
+        project_names = self.get_project_names()
+        if not project_names:
+            messagebox.error("Error", "The project list is empty")
+            return
         last_action = self.get_last_action()
         if last_action["action_type"] != self.end_action and last_action["action_type"] != "N/A":
             self.end_work_time()
@@ -109,6 +113,10 @@ class work_timer:
         self.write_work_time(active_project_name, self.begin_action, last_action['time'])
 
     def end_work_time(self):
+        project_names = self.get_project_names()
+        if not project_names:
+            messagebox.error("Error", "The project list is empty")
+            return
         last_action = self.get_last_action()
         if last_action["action_type"] != self.end_action and last_action["action_type"] != "N/A":
             self.write_work_time(last_action["project_name"], self.end_action, last_action['time'])
@@ -135,7 +143,7 @@ class work_timer:
 
     def create_row(self, project_name, time, action_type):
         c = self.conn.cursor()
-        c.execute("INSERT INTO times VALUES (?, ?, ?)", (project_name, time, action_type))
+        c.execute("INSERT INTO times (project_name, time, action_type) VALUES (?, ?, ?)", (project_name, time, action_type))
         self.conn.commit()
 
     ### Process data
@@ -330,6 +338,11 @@ class work_timer:
 
     ### Create the agenda of project times
 
+    # This rectangle is used to add new project blocks
+    def create_invisible_rectangle(self):
+        self.w.create_rectangle(self.left_width_offset, self.up_heigth_offset, self.grid_width+self.left_width_offset, self.grid_heigth+self.up_heigth_offset, fill="", outline="", tags="add_times")
+
+
     def create_coordinates_lines(self):
         self.w.create_line(0, self.up_heigth_offset, self.left_width_offset+self.grid_width, self.up_heigth_offset, width=2)
         self.w.create_line(self.left_width_offset, 0, self.left_width_offset, self.up_heigth_offset+self.grid_heigth, width=2)
@@ -348,7 +361,7 @@ class work_timer:
             self.w.create_line(self.left_width_offset, y, self.left_width_offset+self.grid_width, y, dash=(10,10))
 
     def create_day_lines(self):
-        start_of_week = self.week_day - timedelta(days=self.week_day.weekday())  # Monday
+        start_of_week = self.reference_day - timedelta(days=self.reference_day.weekday())  # Monday
         end_of_week = start_of_week + timedelta(days=6)  # Sunday
         weekdays = [ "%s %s/%s" %(calendar.day_name[my_date.weekday()], my_date.day, my_date.month) for my_date in pd.date_range(start_of_week, end_of_week) ]
         index = 0
@@ -378,7 +391,7 @@ class work_timer:
         df["time"] = pd.to_datetime(df["time"])
 
         # Only keep the current week
-        start_of_week = self.week_day - timedelta(days=self.week_day.weekday())  # Monday
+        start_of_week = self.reference_day - timedelta(days=self.reference_day.weekday())  # Monday
         start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_week = start_of_week + timedelta(days=6)  # Sunday
         end_of_week = end_of_week.replace(hour=23, minute=59, second=59, microsecond=0)
@@ -390,14 +403,14 @@ class work_timer:
             self.add_working_time(row.last_time, row.time, row.time.replace(hour=6, minute=0, second=0), row.last_time.replace(hour=20, minute=0, second=0), row.time.weekday(), self.project_color_dict[row.project_name])
 
     def set_prev_week(self):
-        self.week_day = self.week_day - timedelta(days=7)
+        self.reference_day = self.reference_day - timedelta(days=7)
         self.w.delete("day_line")
         self.create_day_lines()
         self.w.delete("project_times")
         self.add_all_working_time()
 
     def set_next_week(self):
-        self.week_day = self.week_day + timedelta(days=7)
+        self.reference_day = self.reference_day + timedelta(days=7)
         self.w.delete("day_line")
         self.create_day_lines()
         self.w.delete("project_times")
@@ -405,15 +418,27 @@ class work_timer:
 
     def modify_time_row(self, modify_type):
         # Get the new values
-        project_name = self.initial_project_name_entry.get()
-        row_date = self.date_entry.cget("text")
+        project_name = self.modify_times_project_name_combobox.get()
+        row_date = self.modify_times_date_label.cget("text")
         begin_hour = self.begin_hour_entry.get()
+        if len(begin_hour) == 1:
+            begin_hour = "0%s" %(begin_hour)
         begin_minute = self.begin_minute_entry.get()
+        if len(begin_minute) == 1:
+            begin_minute = "0%s" %(begin_minute)
         begin_second = self.begin_second_entry.get()
+        if len(begin_second) == 1:
+            begin_second = "0%s" %(begin_second)
         begin_time = "%s %s:%s:%s" %(row_date, begin_hour, begin_minute, begin_second)
         end_hour = self.end_hour_entry.get()
+        if len(end_hour) == 1:
+            end_hour = "0%s" %(end_hour)
         end_minute = self.end_minute_entry.get()
+        if len(end_minute) == 1:
+            end_minute = "0%s" %(end_minute)
         end_second = self.end_second_entry.get()
+        if len(end_second) == 1:
+            end_second = "0%s" %(end_second)
         end_time = "%s %s:%s:%s" %(row_date, end_hour, end_minute, end_second)
 
         # Get all the project names
@@ -426,9 +451,12 @@ class work_timer:
         if modify_type == "update":
             self.update_row(project_name, begin_time, self.begin_row["project_name"], self.begin_row["time"], "BEGIN")
             self.update_row(project_name, end_time, self.end_row["project_name"], self.end_row["time"], "END")
-        elif modify_type == "remove":
-            self.delete_row(project_name, begin_time, "BEGIN")
-            self.delete_row(project_name, end_time, "END")
+        elif modify_type == "delete":
+            self.delete_row(self.begin_row["project_name"], self.begin_row["time"], "BEGIN")
+            self.delete_row(self.end_row["project_name"], self.end_row["time"], "END")
+        elif modify_type == "add":
+            self.create_row(project_name, begin_time, "BEGIN")
+            self.create_row(project_name, end_time, "END")
 
         # Update the canvas
         self.w.delete("legend")
@@ -440,20 +468,19 @@ class work_timer:
         self.modify_times_window.destroy()
 
     def add_time_row(self):
-        pass
+        self.modify_time_row("add")
 
-    def remove_time_row(self):
-        self.modify_time_row("remove")
+    def delete_time_row(self):
+        self.modify_time_row("delete")
 
     def update_time_row(self):
         self.modify_time_row("update")
 
-    def modify_times(self, event):
-
+    def get_clicked_time(self, event):
         # Get clicked time
         x, y = event.x, event.y
         # Get the current day
-        start_of_week = self.week_day.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=self.week_day.weekday())
+        start_of_week = self.reference_day.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=self.reference_day.weekday())
         number_of_day_in_week = int((x-self.left_width_offset)/self.between_days_range)
         clicked_day = start_of_week + timedelta(days=number_of_day_in_week)
         # Get the current hour
@@ -463,69 +490,105 @@ class work_timer:
         # Merge in the current time
         clicked_time = clicked_day + clicked_hour
 
+        return clicked_time
+
+    def modify_times(self, event, modify_type):
+        clicked_time = self.get_clicked_time(event)
+
         # Get associated rows
-        self.begin_row = self.get_begin_row_from_time(clicked_time)
-        self.end_row = self.get_end_row_from_time(clicked_time)
+        if modify_type == "update_or_delete":
+            self.begin_row = self.get_begin_row_from_time(clicked_time)
+            self.end_row = self.get_end_row_from_time(clicked_time)
+            begin_printed_time = self.begin_row["time"]
+            end_printed_time = self.end_row["time"]
+        elif modify_type == "add":
+            begin_printed_time = clicked_time.strftime(format="%Y-%m-%d %H:%M:%S")
+            end_printed_time = (clicked_time + timedelta(hours=1)).strftime(format="%Y-%m-%d %H:%M:%S")
 
         # Create window with these infos
+        index_row = 1
+        if modify_type == "update_or_delete":
+            window_title = "Update or delete project block"
+        elif modify_type == "add":
+            window_title = "Add project block"
         self.modify_times_window = tk.Toplevel(self.w)
-        self.modify_times_window.title("Modify project time")
+        self.modify_times_window.title(window_title)
 
         # Project date
-        self.date_entry = tk.Label(self.modify_times_window, text=self.begin_row["time"].split(" ")[0])
-        self.date_entry.grid(row=1, column=1, columnspan=5)
+        index_row+=1
+        self.modify_times_date_label = tk.Label(self.modify_times_window, text=begin_printed_time.split(" ")[0])
+        self.modify_times_date_label.grid(row=index_row, column=1, columnspan=5)
 
         # Project name
-        initial_project_name_strvar = tk.StringVar()
-        initial_project_name_strvar.set(self.begin_row["project_name"])
-        self.initial_project_name_entry = tk.Entry(self.modify_times_window, textvariable=initial_project_name_strvar)
-        self.initial_project_name_entry.grid(row=2, column=1, columnspan=5)
+        index_row+=1
+        project_names = self.get_project_names()
+        self.modify_times_project_name_combobox = ttk.Combobox(self.modify_times_window, state='readonly', values=project_names)
+        if project_names:
+            if modify_type == "update_or_delete":
+                project_name_index = project_names.index(self.begin_row["project_name"])
+            elif modify_type == "add":
+                project_name_index = 0
+            self.modify_times_project_name_combobox.current(project_name_index)
+        self.modify_times_project_name_combobox.grid(row=index_row, column=1, columnspan=5)
 
         # Begin hour
-        begin_hour_row = 3
+        index_row+=1
         begin_hour_strvar = tk.StringVar()
-        begin_hour_strvar.set(self.begin_row["time"].split(" ")[1].split(":")[0])
+        begin_hour_strvar.set(begin_printed_time.split(" ")[1].split(":")[0])
         self.begin_hour_entry = tk.Entry(self.modify_times_window, width=2, textvariable=begin_hour_strvar)
-        self.begin_hour_entry.grid(row=begin_hour_row, column=1)
+        self.begin_hour_entry.grid(row=index_row, column=1)
         self.begin_hour_label = tk.Label(self.modify_times_window, text=":")
-        self.begin_hour_label.grid(row=begin_hour_row, column=2)
+        self.begin_hour_label.grid(row=index_row, column=2)
         begin_minute_strvar = tk.StringVar()
-        begin_minute_strvar.set(self.begin_row["time"].split(" ")[1].split(":")[1])
+        begin_minute_strvar.set(begin_printed_time.split(" ")[1].split(":")[1])
         self.begin_minute_entry = tk.Entry(self.modify_times_window, width=2, textvariable=begin_minute_strvar)
-        self.begin_minute_entry.grid(row=begin_hour_row, column=3)
+        self.begin_minute_entry.grid(row=index_row, column=3)
         self.begin_minute_label = tk.Label(self.modify_times_window, text=":")
-        self.begin_minute_label.grid(row=begin_hour_row, column=4)
+        self.begin_minute_label.grid(row=index_row, column=4)
         begin_second_strvar = tk.StringVar()
-        begin_second_strvar.set(self.begin_row["time"].split(" ")[1].split(":")[2])
+        begin_second_strvar.set(begin_printed_time.split(" ")[1].split(":")[2])
         self.begin_second_entry = tk.Entry(self.modify_times_window, width=2, textvariable=begin_second_strvar)
-        self.begin_second_entry.grid(row=begin_hour_row, column=5)
+        self.begin_second_entry.grid(row=index_row, column=5)
 
         # end hour
-        end_hour_row = 4
+        index_row+=1
         end_hour_strvar = tk.StringVar()
-        end_hour_strvar.set(self.end_row["time"].split(" ")[1].split(":")[0])
+        end_hour_strvar.set(end_printed_time.split(" ")[1].split(":")[0])
         self.end_hour_entry = tk.Entry(self.modify_times_window, width=2, textvariable=end_hour_strvar)
-        self.end_hour_entry.grid(row=end_hour_row, column=1)
+        self.end_hour_entry.grid(row=index_row, column=1)
         self.end_hour_label = tk.Label(self.modify_times_window, text=":")
-        self.end_hour_label.grid(row=end_hour_row, column=2)
+        self.end_hour_label.grid(row=index_row, column=2)
         end_minute_strvar = tk.StringVar()
-        end_minute_strvar.set(self.end_row["time"].split(" ")[1].split(":")[1])
+        end_minute_strvar.set(end_printed_time.split(" ")[1].split(":")[1])
         self.end_minute_entry = tk.Entry(self.modify_times_window, width=2, textvariable=end_minute_strvar)
-        self.end_minute_entry.grid(row=end_hour_row, column=3)
+        self.end_minute_entry.grid(row=index_row, column=3)
         self.end_minute_label = tk.Label(self.modify_times_window, text=":")
-        self.end_minute_label.grid(row=end_hour_row, column=4)
+        self.end_minute_label.grid(row=index_row, column=4)
         end_second_strvar = tk.StringVar()
-        end_second_strvar.set(self.end_row["time"].split(" ")[1].split(":")[2])
+        end_second_strvar.set(end_printed_time.split(" ")[1].split(":")[2])
         self.end_second_entry = tk.Entry(self.modify_times_window, width=2, textvariable=end_second_strvar)
-        self.end_second_entry.grid(row=end_hour_row, column=5)
+        self.end_second_entry.grid(row=index_row, column=5)
 
-        # Change button
-        modify_button = tk.Button(self.modify_times_window, text="Update", command=self.update_time_row)
-        modify_button.grid(row=5, column=1, columnspan=5)
+        if modify_type == "update_or_delete":
+            # Change button
+            index_row+=1
+            modify_button = tk.Button(self.modify_times_window, text="Update", command=self.update_time_row)
+            modify_button.grid(row=index_row, column=1, columnspan=5)
+            # Delete button
+            index_row+=1
+            modify_button = tk.Button(self.modify_times_window, text="Delete", command=self.delete_time_row)
+            modify_button.grid(row=index_row, column=1, columnspan=5)
+        elif modify_type == "add":
+            # Add button
+            index_row+=1
+            add_button = tk.Button(self.modify_times_window, text="Add", command=self.add_time_row)
+            add_button.grid(row=index_row, column=1, columnspan=5)
 
-        # Delete button
-        modify_button = tk.Button(self.modify_times_window, text="Delete", command=self.remove_time_row)
-        modify_button.grid(row=6, column=1, columnspan=5)
+    def add_times(self, event):
+        self.modify_times(event, "add")
+
+    def update_or_delete_times(self, event):
+        self.modify_times(event, "update_or_delete")
 
     def create_calendar(self):
         top = tk.Toplevel(self.root)
@@ -540,6 +603,7 @@ class work_timer:
                    height=self.canvas_height)
         self.w.grid(row=2, column=1, columnspan=2)
 
+        self.create_invisible_rectangle()
         self.create_coordinates_lines()
         self.create_hour_lines()
         self.create_day_lines()
@@ -547,7 +611,8 @@ class work_timer:
 
         self.add_all_working_time()
 
-        self.w.tag_bind("project_times", '<ButtonPress-1>', self.modify_times)
+        self.w.tag_bind("project_times", '<ButtonPress-1>', self.update_or_delete_times)
+        self.w.tag_bind("add_times", "<ButtonPress-1>", self.add_times)
 
     ### Start
 

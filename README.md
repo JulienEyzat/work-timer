@@ -4,4 +4,4 @@
 
 - Bug in calendar if a project time is over multiple days
 - Improve calendar prettiness
-- Add possibility to add project blocks in the calendar
+- Bugs in calendar (time overlap with updates or wrong time values)
