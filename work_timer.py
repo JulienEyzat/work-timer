@@ -15,7 +15,8 @@ import os
 class work_timer:
     def __init__(self):
         # Constants$
-        self.database_path = "work_timer.db"
+        execution_directory = os.path.split(os.path.abspath(sys.argv[0]))[0]
+        self.database_path = os.path.join(execution_directory, "work_timer.db")
         self.end_action = "END"
         self.begin_action = "BEGIN"
 
