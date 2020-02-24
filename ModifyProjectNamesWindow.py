@@ -5,7 +5,7 @@ class ModifyProjectNamesWindow:
 
     def __init__(self, parent_window, window_type, project_names=None):
         self.window_type = window_type
-        if window_type == "create":
+        if window_type == "add":
             self.create_add_project_window(parent_window)
         elif window_type == "remove":
             self.create_remove_project_window(parent_window, project_names)
@@ -45,7 +45,7 @@ class ModifyProjectNamesWindow:
     # Getters
 
     def get_selected_project_name(self):
-        if self.window_type == "create":
+        if self.window_type == "add":
             return self.modify_project_entry.get()
         elif self.window_type == "remove":
             return self.modify_project_combo_box.get()
