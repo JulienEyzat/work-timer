@@ -60,7 +60,7 @@ class DatabaseInterface:
 
     def get_last_action(self):
         conn, c = self.connect_to_database()
-        c.execute("SELECT * FROM times ORDER BY Datetime(time) DESC LIMIT 1")
+        c.execute("SELECT * FROM times WHERE Datetime(time) <= Datetime('now', 'localtime') ORDER BY Datetime(time) DESC LIMIT 1")
         result = c.fetchone()
         self.disconnect_from_database(conn)
         return result

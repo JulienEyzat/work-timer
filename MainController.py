@@ -81,7 +81,7 @@ class MainController:
                 now = datetime.now()
                 self.fill_missing_days(now, last_action)
                 now_str = now.strftime(self.time_format)
-                self.write_work_time(last_action["project_name"], now_str, self.database_interface_end_action)
+                self.write_work_time(last_action["project_name"], now_str, self.database_interface.end_action)
 
     # Add and remove project buttons
 

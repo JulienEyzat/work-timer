@@ -71,6 +71,8 @@ class MainWindow:
         active_project_name = self.project_names_combo_box.get()
         return active_project_name
 
+    # Update
+
     def update_project_names_combo_box(self, project_names):
         self.project_names_combo_box.config(values=project_names)
         if project_names:
