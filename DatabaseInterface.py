@@ -8,8 +8,11 @@ class DatabaseInterface:
     def __init__(self):
         # Path to database
         database_name = "work_timer.db"
-        execution_directory = os.path.split(os.path.abspath(sys.argv[0]))[0]
-        self.database_path = os.path.join(execution_directory, database_name)
+        home = os.path.expanduser("~")
+        work_timer_directory = os.path.join(home, ".work_timer")
+        if not os.path.isdir(work_timer_directory):
+            os.mkdir(work_timer_directory)
+        self.database_path = os.path.join(work_timer_directory, database_name)
 
         # Action names in database
         self.end_action = "END"

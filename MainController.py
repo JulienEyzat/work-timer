@@ -77,11 +77,11 @@ class MainController:
     def end_work_time(self):
         if self.is_project_names():
             last_action = self.database_interface.get_last_action()
-            if last_action["action_type"] == self.database_interface.begin_action:
-                now = datetime.now()
-                self.fill_missing_days(now, last_action)
-                now_str = now.strftime(self.time_format)
-                self.write_work_time(last_action["project_name"], now_str, self.database_interface.end_action)
+            if last_action and last_action["action_type"] == self.database_interface.begin_action:
+                    now = datetime.now()
+                    self.fill_missing_days(now, last_action)
+                    now_str = now.strftime(self.time_format)
+                    self.write_work_time(last_action["project_name"], now_str, self.database_interface.end_action)
 
     # Add and remove project buttons
 
