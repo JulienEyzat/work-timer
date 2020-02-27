@@ -13,8 +13,12 @@ class MainWindow:
     # Create the view
 
     def create_timer_frame(self, root, project_names):
-        timer_frame = tk.LabelFrame(root, text="Timer")
-        timer_frame.grid(row=1, column=1)
+        timer_separator = ttk.Separator(root,orient=tk.HORIZONTAL)
+        timer_separator.grid(row=1, column=1, sticky="ew")
+        timer_label = tk.Label(root, text="Timer")
+        timer_label.grid(row=1, column=1)
+        timer_frame = tk.Frame(root)
+        timer_frame.grid(row=2, column=1)
 
         # Project list
         project_label = tk.Label(timer_frame, text="Project name :")
@@ -27,12 +31,17 @@ class MainWindow:
         # Start and stop buttons
         self.start_button = tk.Button(timer_frame, text="Start")
         self.start_button.grid(row=3,column=1)
-        self.stop_button = tk.Button(timer_frame, text="End")
+        self.stop_button = tk.Button(timer_frame, text="Stop")
         self.stop_button.grid(row=3,column=2)
 
     def create_project_list_buttons(self, root):
-        project_list_buttons_frame = tk.LabelFrame(root, text="Update project list")
-        project_list_buttons_frame.grid(row=2, column=2)
+        project_list_buttons_separator = ttk.Separator(root,orient=tk.HORIZONTAL)
+        project_list_buttons_separator.grid(row=3, column=1, sticky="ew")
+        project_list_buttons_label = tk.Label(root, text="Projects list")
+        project_list_buttons_label.grid(row=3, column=1)
+        project_list_buttons_frame = tk.Frame(root)
+        project_list_buttons_frame.grid(row=4, column=1)
+
         self.add_project_button = tk.Button(project_list_buttons_frame, text="Add")
         self.add_project_button.grid(row=1,column=1)
         self.remove_project_button = tk.Button(project_list_buttons_frame, text="Remove")
@@ -40,29 +49,44 @@ class MainWindow:
 
     def create_last_action_labels(self, root, last_action):
         # Frame of the last action
-        last_action_frame = tk.LabelFrame(root, text="Last action")
-        last_action_frame.grid(row=1, column=2)
+        last_action_separator = ttk.Separator(root,orient=tk.HORIZONTAL)
+        last_action_separator.grid(row=5, column=1, sticky="ew")
+        last_action_label = tk.Label(root, text="Last action")
+        last_action_label.grid(row=5, column=1)
+        last_action_frame = tk.Frame(root)
+        last_action_frame.grid(row=6, column=1)
 
         self.last_action_date_label = tk.Label(last_action_frame, text="Date :")
-        self.last_action_date_label.grid(row=5, column=1, columnspan=1, sticky="e")
+        self.last_action_date_label.grid(row=1, column=1, columnspan=1, sticky="e")
         self.last_action_date_var = tk.StringVar()
         self.last_action_date_var.set(last_action["time"].split(" ")[0])
         self.last_action_date_value_label = tk.Label(last_action_frame, textvariable=self.last_action_date_var)
-        self.last_action_date_value_label.grid(row=5, column=2, columnspan=1, sticky="w")
+        self.last_action_date_value_label.grid(row=1, column=2, columnspan=1, sticky="w")
 
         self.last_action_time_label = tk.Label(last_action_frame, text="Time :")
-        self.last_action_time_label.grid(row=6, column=1, columnspan=1, sticky="e")
+        self.last_action_time_label.grid(row=2, column=1, columnspan=1, sticky="e")
         self.last_action_time_var = tk.StringVar()
         self.last_action_time_var.set(last_action["time"].split(" ")[1])
         self.last_action_time_value_label = tk.Label(last_action_frame, textvariable=self.last_action_time_var)
-        self.last_action_time_value_label.grid(row=6, column=2, columnspan=1, sticky="w")
+        self.last_action_time_value_label.grid(row=2, column=2, columnspan=1, sticky="w")
 
         self.last_action_project_label = tk.Label(last_action_frame, text="Project :")
-        self.last_action_project_label.grid(row=7, column=1, columnspan=1, sticky="e")
+        self.last_action_project_label.grid(row=3, column=1, columnspan=1, sticky="e")
         self.last_action_project_var = tk.StringVar()
         self.last_action_project_var.set(last_action["project_name"])
         self.last_action_project_value_label = tk.Label(last_action_frame, textvariable=self.last_action_project_var)
-        self.last_action_project_value_label.grid(row=7, column=2, columnspan=1, sticky="w")
+        self.last_action_project_value_label.grid(row=3, column=2, columnspan=1, sticky="w")
+
+        self.last_action_type_label = tk.Label(last_action_frame, text="Action :")
+        self.last_action_type_label.grid(row=4, column=1, columnspan=1, sticky="e")
+        self.last_action_type_var = tk.StringVar()
+        if last_action["action_type"] == "BEGIN":
+            last_action_type = "Start"
+        else:
+            last_action_type = "Stop"
+        self.last_action_type_var.set(last_action_type)
+        self.last_action_type_value_label = tk.Label(last_action_frame, textvariable=self.last_action_type_var)
+        self.last_action_type_value_label.grid(row=4, column=2, columnspan=1, sticky="w")
 
     def create_summary_button(self, visualizations_frame):
         self.summary_button = tk.Button(visualizations_frame, text="Summary")
@@ -73,8 +97,12 @@ class MainWindow:
         self.calendar_button.grid(row=1, column=2)
 
     def create_visualizations(self, root):
-        visualizations_frame = tk.LabelFrame(root, text="Visualizations")
-        visualizations_frame.grid(row=2, column=1)
+        visualizations_separator = ttk.Separator(root,orient=tk.HORIZONTAL)
+        visualizations_separator.grid(row=7, column=1, sticky="ew")
+        visualizations_label = tk.Label(root, text="Visualization")
+        visualizations_label.grid(row=7, column=1)
+        visualizations_frame = tk.Frame(root)
+        visualizations_frame.grid(row=8, column=1)
 
         self.create_summary_button(visualizations_frame)
         self.create_calendar_button(visualizations_frame)

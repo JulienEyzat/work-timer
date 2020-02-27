@@ -21,6 +21,12 @@ class ModifyProjectNamesController:
         elif window_type == "remove":
             self.modify_project_names_window.modify_button.config(command=self.remove_project)
 
+        # Click enter in the entry field
+        if window_type == "add":
+            self.modify_project_names_window.modify_project_entry.bind('<Return>', self.add_project)
+        elif window_type == "remove":
+            self.modify_project_names_window.modify_project_combo_box.bind('<Return>', self.remove_project)
+
 
     def modify_project_list(self, modify_type):
         # Get the new project_name
