@@ -24,10 +24,10 @@ class ModifyCalendarController:
 
         # Modify buttons
         if modify_type == "update_or_delete":
-            self.modify_calendar_window.update_button.config(command=self.update_time_row)
-            self.modify_calendar_window.delete_button.config(command=self.delete_time_row)
+            self.modify_calendar_window.set_update_button_command(self.update_time_row)
+            self.modify_calendar_window.set_delete_button_command(self.delete_time_row)
         elif modify_type == "add":
-            self.modify_calendar_window.add_button.config(command=self.add_time_row)
+            self.modify_calendar_window.set_add_button_command(self.add_time_row)
 
     # Get printed times
 

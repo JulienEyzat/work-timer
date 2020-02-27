@@ -16,12 +16,12 @@ class CalendarController:
         self.calendar_window = CalendarWindow(parent_window, project_names, times_df)
 
         # Prev and next week buttons
-        self.calendar_window.prev_week_button.config(command=self.set_prev_week)
-        self.calendar_window.next_week_button.config(command=self.set_next_week)
+        self.calendar_window.set_prev_week_button_command(self.set_prev_week)
+        self.calendar_window.set_next_week_button_command(self.set_next_week)
 
         # Click inside the canvas
-        self.calendar_window.w.tag_bind("project_block", '<ButtonPress-1>', self.update_or_delete_project_block)
-        self.calendar_window.w.tag_bind("add_broject_block", "<ButtonPress-1>", self.add_project_block)
+        self.calendar_window.set_project_blocks_command(self.update_or_delete_project_block)
+        self.calendar_window.set_add_project_blocks_command(self.add_project_block)
 
     # Prev and next week buttons
 

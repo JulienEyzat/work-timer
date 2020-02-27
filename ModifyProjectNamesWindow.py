@@ -7,8 +7,8 @@ class ModifyProjectNamesWindow:
         self.window_type = window_type
         if window_type == "add":
             self.create_add_project_window(parent_window)
-        elif window_type == "remove":
-            self.create_remove_project_window(parent_window, project_names)
+        elif window_type == "delete":
+            self.create_delete_project_window(parent_window, project_names)
 
     # View
 
@@ -23,8 +23,8 @@ class ModifyProjectNamesWindow:
         self.modify_button = tk.Button(self.modify_project_window, text="Add")
         self.modify_button.grid()
 
-    def create_remove_project_window(self, parent_window, project_names):
-        # Check if there is projects to remove
+    def create_delete_project_window(self, parent_window, project_names):
+        # Check if there is projects to delete
         if not project_names:
             messagebox.showerror("Error", "There is no project yet")
             return
@@ -47,5 +47,21 @@ class ModifyProjectNamesWindow:
     def get_selected_project_name(self):
         if self.window_type == "add":
             return self.modify_project_entry.get()
-        elif self.window_type == "remove":
+        elif self.window_type == "delete":
             return self.modify_project_combo_box.get()
+
+    # Set commands
+
+    def set_modify_button_command(self, function):
+        self.modify_button.config(command=function)
+
+    def set_modify_project_entry_command(self, function):
+        self.modify_project_entry.bind('<Return>', function)
+
+    def set_modify_project_combo_box_command(self, function):
+        self.modify_project_combo_box.bind('<Return>', function)
+
+    # Destroy window
+
+    def destroy_window(self):
+        self.modify_project_window.destroy()

@@ -44,8 +44,8 @@ class MainWindow:
 
         self.add_project_button = tk.Button(project_list_buttons_frame, text="Add")
         self.add_project_button.grid(row=1,column=1)
-        self.remove_project_button = tk.Button(project_list_buttons_frame, text="Remove")
-        self.remove_project_button.grid(row=1,column=2)
+        self.delete_project_button = tk.Button(project_list_buttons_frame, text="Delete")
+        self.delete_project_button.grid(row=1,column=2)
 
     def create_last_action_labels(self, root, last_action):
         # Frame of the last action
@@ -122,7 +122,28 @@ class MainWindow:
         else:
             self.project_names_combo_box.set("")
 
-    def update_last_action_labels(self, new_time, new_project_name):
+    def update_last_action_labels(self, new_time, new_project_name, new_action_type):
         self.last_action_date_var.set(new_time.split(" ")[0])
         self.last_action_time_var.set(new_time.split(" ")[1])
         self.last_action_project_var.set(new_project_name)
+        self.last_action_type_var.set(new_action_type)
+
+    # Set commands
+
+    def set_start_button_command(self, function):
+        self.start_button.config(command=function)
+
+    def set_stop_button_command(self, function):
+        self.stop_button.config(command=function)
+
+    def set_add_project_button_command(self, function):
+        self.add_project_button.config(command=function)
+
+    def set_delete_project_button_command(self, function):
+        self.delete_project_button.config(command=function)
+
+    def set_summary_button_command(self, function):
+        self.summary_button.config(command=function)
+
+    def set_calendar_button_command(self, function):
+        self.calendar_button.config(command=function)

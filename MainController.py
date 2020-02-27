@@ -30,24 +30,28 @@ class MainController:
         self.main_window = MainWindow(self.root, project_names, last_action)
 
         # Start and stop buttons
-        self.main_window.start_button.config(command=self.add_work_time)
-        self.main_window.stop_button.config(command=self.end_work_time)
+        self.main_window.set_start_button_command(self.add_work_time)
+        self.main_window.set_stop_button_command(self.end_work_time)
 
-        # Add and remove project buttons
-        self.main_window.add_project_button.config(command=self.create_add_project_window)
-        self.main_window.remove_project_button.config(command=self.create_remove_project_window)
+        # Add and delete project buttons
+        self.main_window.set_add_project_button_command(self.create_add_project_window)
+        self.main_window.set_delete_project_button_command(self.create_delete_project_window)
 
         # Summary button
-        self.main_window.summary_button.config(command=self.create_summary_window)
+        self.main_window.set_summary_button_command(self.create_summary_window)
 
         # Calendar button
-        self.main_window.calendar_button.config(command=self.create_calendar_window)
+        self.main_window.set_calendar_button_command(self.create_calendar_window)
 
     # Start and stop buttons
 
     def write_work_time(self, project_name, now, action_type):
         self.database_interface.create_row(project_name, now, action_type)
-        self.main_window.update_last_action_labels(now, project_name)
+        if action_type == self.database_interface.begin_action:
+            action_type = "Start"
+        else:
+            action_type = "Stop"
+        self.main_window.update_last_action_labels(now, project_name, action_type)
 
     def is_project_names(self):
         project_names = self.database_interface.get_project_names()
@@ -83,13 +87,13 @@ class MainController:
                     now_str = now.strftime(self.time_format)
                     self.write_work_time(last_action["project_name"], now_str, self.database_interface.end_action)
 
-    # Add and remove project buttons
+    # Add and delete project buttons
 
     def create_add_project_window(self):
         modify_project_names_controller = ModifyProjectNamesController(self.root, self.main_window, "add")
 
-    def create_remove_project_window(self):
-        modify_project_names_controller = ModifyProjectNamesController(self.root, self.main_window, "remove")
+    def create_delete_project_window(self):
+        modify_project_names_controller = ModifyProjectNamesController(self.root, self.main_window, "delete")
 
     # Summary button
 

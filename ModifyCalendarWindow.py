@@ -113,3 +113,14 @@ class ModifyCalendarWindow:
 
     def destroy_window(self):
         self.modify_times_window.destroy()
+
+    # Set commands
+
+    def set_update_button_command(self, function):
+        self.update_button.config(command=function)
+
+    def set_add_button_command(self, function):
+        self.add_button.config(command=function)
+
+    def set_delete_button_command(self, function):
+        self.delete_button.config(command=function)

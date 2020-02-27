@@ -42,7 +42,7 @@ class DatabaseInterface:
         c.execute("INSERT INTO project_names VALUES (?)", (project_name,))
         self.disconnect_from_database(conn)
 
-    def remove_project_name_in_database(self, project_name):
+    def delete_project_name_in_database(self, project_name):
         conn, c = self.connect_to_database()
         c.execute("DELETE FROM project_names WHERE project_name=?", (project_name,))
         self.disconnect_from_database(conn)

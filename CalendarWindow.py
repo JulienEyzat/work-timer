@@ -54,7 +54,7 @@ class CalendarWindow:
 
     # This rectangle is used to add new project blocks
     def create_invisible_rectangle(self):
-        self.w.create_rectangle(self.left_width_offset, self.up_heigth_offset, self.grid_width+self.left_width_offset, self.grid_heigth+self.up_heigth_offset, fill="", outline="", tags="add_broject_block")
+        self.w.create_rectangle(self.left_width_offset, self.up_heigth_offset, self.grid_width+self.left_width_offset, self.grid_heigth+self.up_heigth_offset, fill="", outline="", tags="add_project_block")
 
     def create_coordinates_lines(self):
         self.w.create_line(0, self.up_heigth_offset, self.left_width_offset+self.grid_width, self.up_heigth_offset, width=2)
@@ -154,3 +154,17 @@ class CalendarWindow:
         self.create_legend(project_names)
         self.w.delete("project_block")
         self.add_all_working_time(times_df)
+
+    # Set commands
+
+    def set_prev_week_button_command(self, function):
+        self.prev_week_button.config(command=function)
+
+    def set_next_week_button_command(self, function):
+        self.next_week_button.config(command=function)
+
+    def set_project_blocks_command(self, function):
+        self.w.tag_bind("project_block", '<ButtonPress-1>', function)
+
+    def set_add_project_blocks_command(self, function):
+        self.w.tag_bind("add_project_block", '<ButtonPress-1>', function)
