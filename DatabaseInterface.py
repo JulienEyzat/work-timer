@@ -99,6 +99,7 @@ class DatabaseInterface:
 
     def get_dataframe_times(self):
         conn, c = self.connect_to_database()
-        df = pd.read_sql_query("SELECT * FROM times", conn)
+        df = pd.read_sql_query("SELECT * FROM times ORDER BY Datetime(time) ASC, action_type DESC", conn)
+        print(df)
         self.disconnect_from_database(conn)
         return df
