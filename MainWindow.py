@@ -44,8 +44,10 @@ class MainWindow:
 
         self.add_project_button = tk.Button(project_list_buttons_frame, text="Add")
         self.add_project_button.grid(row=1,column=1)
-        self.delete_project_button = tk.Button(project_list_buttons_frame, text="Delete")
-        self.delete_project_button.grid(row=1,column=2)
+        self.modify_project_button = tk.Button(project_list_buttons_frame, text="Modify")
+        self.modify_project_button.grid(row=1,column=2)
+        # self.delete_project_button = tk.Button(project_list_buttons_frame, text="Delete")
+        # self.delete_project_button.grid(row=1,column=3)
 
     def create_last_action_labels(self, root, last_action):
         # Frame of the last action
@@ -139,8 +141,11 @@ class MainWindow:
     def set_add_project_button_command(self, function):
         self.add_project_button.config(command=function)
 
-    def set_delete_project_button_command(self, function):
-        self.delete_project_button.config(command=function)
+    def set_modify_project_button_command(self, function):
+        self.modify_project_button.config(command=function)
+
+    # def set_delete_project_button_command(self, function):
+    #     self.delete_project_button.config(command=function)
 
     def set_summary_button_command(self, function):
         self.summary_button.config(command=function)

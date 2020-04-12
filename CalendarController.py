@@ -11,7 +11,7 @@ class CalendarController:
         self.database_interface = DatabaseInterface()
 
         # Create the window
-        project_names = self.database_interface.get_times_project_names()
+        project_names = self.database_interface.get_project_names()
         times_df = self.database_interface.get_dataframe_times()
         self.calendar_window = CalendarWindow(parent_window, project_names, times_df)
 

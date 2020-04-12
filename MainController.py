@@ -35,7 +35,8 @@ class MainController:
 
         # Add and delete project buttons
         self.main_window.set_add_project_button_command(self.create_add_project_window)
-        self.main_window.set_delete_project_button_command(self.create_delete_project_window)
+        self.main_window.set_modify_project_button_command(self.create_modify_project_window)
+        # self.main_window.set_delete_project_button_command(self.create_delete_project_window)
 
         # Summary button
         self.main_window.set_summary_button_command(self.create_summary_window)
@@ -92,8 +93,11 @@ class MainController:
     def create_add_project_window(self):
         modify_project_names_controller = ModifyProjectNamesController(self.root, self.main_window, "add")
 
-    def create_delete_project_window(self):
-        modify_project_names_controller = ModifyProjectNamesController(self.root, self.main_window, "delete")
+    def create_modify_project_window(self):
+        modify_project_names_controller = ModifyProjectNamesController(self.root, self.main_window, "modify")
+
+    # def create_delete_project_window(self):
+    #     modify_project_names_controller = ModifyProjectNamesController(self.root, self.main_window, "delete")
 
     # Summary button
 
