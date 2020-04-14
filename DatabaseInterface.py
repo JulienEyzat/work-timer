@@ -78,13 +78,6 @@ class DatabaseInterface:
         self.disconnect_from_database(conn)
         return result
 
-    # def get_times_project_names(self):
-    #     conn, c = self.connect_to_database()
-    #     c.execute("SELECT DISTINCT project_name FROM times")
-    #     project_names = [ values[0] for values in c.fetchall() ]
-    #     self.disconnect_from_database(conn)
-    #     return project_names
-
     def get_last_action(self):
         conn, c = self.connect_to_database()
         c.execute("SELECT * FROM times WHERE Datetime(time) <= Datetime('now', 'localtime') ORDER BY Datetime(time) DESC, action_type ASC LIMIT 1")
@@ -124,5 +117,11 @@ class DatabaseInterface:
     def get_dataframe_times(self):
         conn, c = self.connect_to_database()
         df = pd.read_sql_query("SELECT times.project_name, times.time, times.action_type FROM times INNER JOIN project_names ON times.project_name = project_names.project_name WHERE is_hidden IS FALSE ORDER BY Datetime(time) ASC, action_type DESC", conn)
+        self.disconnect_from_database(conn)
+        return df
+
+    def get_dataframe_all_times(self):
+        conn, c = self.connect_to_database()
+        df = pd.read_sql_query("SELECT * FROM times ORDER BY Datetime(time) ASC, action_type DESC", conn)
         self.disconnect_from_database(conn)
         return df

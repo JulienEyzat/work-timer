@@ -22,7 +22,7 @@ class ModifyCalendarWindow:
     def create_date_label(self, begin_printed_time):
         # Project date
         self.modify_times_date_label = tk.Label(self.modify_times_window, text=begin_printed_time.split(" ")[0])
-        self.modify_times_date_label.grid(row=1, column=1, columnspan=5)
+        self.modify_times_date_label.grid(row=1, column=1, columnspan=6)
 
     def create_project_name_combo_box(self, project_names, modify_type, current_project_name):
         # Project name
@@ -33,60 +33,72 @@ class ModifyCalendarWindow:
             elif modify_type == "add":
                 project_name_index = 0
             self.modify_times_project_name_combobox.current(project_name_index)
-        self.modify_times_project_name_combobox.grid(row=2, column=1, columnspan=5)
+        self.modify_times_project_name_combobox.grid(row=2, column=1, columnspan=6)
 
     def create_modify_begin_hour(self, begin_printed_time):
         # Begin hour
         index_row = 3
+
+        # Time label
+        self.begin_time_label = tk.Label(self.modify_times_window, text="Begin :")
+        self.begin_time_label.grid(row=index_row, column=1, sticky="e")
+
+        # Time
         begin_hour_strvar = tk.StringVar()
         begin_hour_strvar.set(begin_printed_time.split(" ")[1].split(":")[0])
         self.begin_hour_entry = tk.Entry(self.modify_times_window, width=2, textvariable=begin_hour_strvar)
-        self.begin_hour_entry.grid(row=index_row, column=1)
-        self.begin_hour_label = tk.Label(self.modify_times_window, text=":")
-        self.begin_hour_label.grid(row=index_row, column=2)
+        self.begin_hour_entry.grid(row=index_row, column=2, sticky="w")
+        self.begin_hour_label = tk.Label(self.modify_times_window, width=1, text=":")
+        self.begin_hour_label.grid(row=index_row, column=3, sticky="w")
         begin_minute_strvar = tk.StringVar()
         begin_minute_strvar.set(begin_printed_time.split(" ")[1].split(":")[1])
         self.begin_minute_entry = tk.Entry(self.modify_times_window, width=2, textvariable=begin_minute_strvar)
-        self.begin_minute_entry.grid(row=index_row, column=3)
-        self.begin_minute_label = tk.Label(self.modify_times_window, text=":")
-        self.begin_minute_label.grid(row=index_row, column=4)
+        self.begin_minute_entry.grid(row=index_row, column=4, sticky="w")
+        self.begin_minute_label = tk.Label(self.modify_times_window, width=1, text=":")
+        self.begin_minute_label.grid(row=index_row, column=5, sticky="w")
         begin_second_strvar = tk.StringVar()
         begin_second_strvar.set(begin_printed_time.split(" ")[1].split(":")[2])
         self.begin_second_entry = tk.Entry(self.modify_times_window, width=2, textvariable=begin_second_strvar)
-        self.begin_second_entry.grid(row=index_row, column=5)
+        self.begin_second_entry.grid(row=index_row, column=6, sticky="w")
 
     def create_modify_end_hour(self, end_printed_time):
         # end hour
         index_row = 4
+
+        # Time label
+        self.end_time_label = tk.Label(self.modify_times_window, text="End :")
+        self.end_time_label.grid(row=index_row, column=1, sticky="e")
+
+        # Time
         end_hour_strvar = tk.StringVar()
         end_hour_strvar.set(end_printed_time.split(" ")[1].split(":")[0])
         self.end_hour_entry = tk.Entry(self.modify_times_window, width=2, textvariable=end_hour_strvar)
-        self.end_hour_entry.grid(row=index_row, column=1)
+        self.end_hour_entry.grid(row=index_row, column=2, sticky="w")
         self.end_hour_label = tk.Label(self.modify_times_window, text=":")
-        self.end_hour_label.grid(row=index_row, column=2)
+        self.end_hour_label.grid(row=index_row, column=3, sticky="w")
         end_minute_strvar = tk.StringVar()
         end_minute_strvar.set(end_printed_time.split(" ")[1].split(":")[1])
         self.end_minute_entry = tk.Entry(self.modify_times_window, width=2, textvariable=end_minute_strvar)
-        self.end_minute_entry.grid(row=index_row, column=3)
+        self.end_minute_entry.grid(row=index_row, column=4, sticky="w")
         self.end_minute_label = tk.Label(self.modify_times_window, text=":")
-        self.end_minute_label.grid(row=index_row, column=4)
+        self.end_minute_label.grid(row=index_row, column=5, sticky="w")
         end_second_strvar = tk.StringVar()
         end_second_strvar.set(end_printed_time.split(" ")[1].split(":")[2])
         self.end_second_entry = tk.Entry(self.modify_times_window, width=2, textvariable=end_second_strvar)
-        self.end_second_entry.grid(row=index_row, column=5)
+        self.end_second_entry.grid(row=index_row, column=6, sticky="w")
 
     def create_modify_buttons(self, modify_type):
         if modify_type == "update_or_delete":
             # Change button
             self.update_button = tk.Button(self.modify_times_window, text="Update")
-            self.update_button.grid(row=5, column=1, columnspan=5)
+            self.update_button.grid(row=5, column=1, columnspan=6)
             # Delete button
             self.delete_button = tk.Button(self.modify_times_window, text="Delete")
-            self.delete_button.grid(row=6, column=1, columnspan=5)
+            self.delete_button.grid(row=6, column=1, columnspan=6)
         elif modify_type == "add":
             # Add button
             self.add_button = tk.Button(self.modify_times_window, text="Add")
-            self.add_button.grid(row=5, column=1, columnspan=5)
+            self.add_button.grid(row=5, column=1, columnspan=6)
 
     # Getters
 

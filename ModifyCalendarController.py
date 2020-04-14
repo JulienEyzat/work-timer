@@ -1,5 +1,6 @@
 from tkinter import messagebox
 from datetime import timedelta
+import pandas as pd
 
 from DatabaseInterface import DatabaseInterface
 from ModifyCalendarWindow import ModifyCalendarWindow
@@ -43,7 +44,17 @@ class ModifyCalendarController:
 
     # Modify buttons
 
-    def get_entry_time(self, entry_time):
+    def get_entry_time(self, entry_time, time_type):
+        # Test if the time entered is ok
+        if not entry_time.isdigit():
+            return None
+        entry_time = int(entry_time)
+        if time_type == "hour" and (entry_time < 0 or entry_time > 23):
+            return None
+        if time_type in ["minute", "second"] and (entry_time < 0 or entry_time > 59):
+            return None
+        # Convert the time to a good string format
+        entry_time = str(entry_time)
         if len(entry_time) == 1:
             entry_time = "0%s" %(entry_time)
         return entry_time
@@ -52,15 +63,36 @@ class ModifyCalendarController:
         # Get the new values
         project_name = self.modify_calendar_window.get_project_name()
         row_date = self.modify_calendar_window.get_date()
-        begin_hour = self.get_entry_time(self.modify_calendar_window.get_begin_hour())
-        begin_minute = self.get_entry_time(self.modify_calendar_window.get_begin_minute())
-        begin_second = self.get_entry_time(self.modify_calendar_window.get_begin_second())
-        end_hour = self.get_entry_time(self.modify_calendar_window.get_end_hour())
-        end_minute = self.get_entry_time(self.modify_calendar_window.get_end_minute())
-        end_second = self.get_entry_time(self.modify_calendar_window.get_end_second())
+        begin_hour = self.get_entry_time(self.modify_calendar_window.get_begin_hour(), "hour")
+        begin_minute = self.get_entry_time(self.modify_calendar_window.get_begin_minute(), "minute")
+        begin_second = self.get_entry_time(self.modify_calendar_window.get_begin_second(), "second")
+        end_hour = self.get_entry_time(self.modify_calendar_window.get_end_hour(), "hour")
+        end_minute = self.get_entry_time(self.modify_calendar_window.get_end_minute(), "minute")
+        end_second = self.get_entry_time(self.modify_calendar_window.get_end_second(), "second")
+
+        if None in [begin_hour, begin_minute, begin_second, end_hour, end_minute, end_second]:
+            messagebox.showerror("Error", "A time is not well formated")
+            return
 
         begin_time = "%s %s:%s:%s" %(row_date, begin_hour, begin_minute, begin_second)
         end_time = "%s %s:%s:%s" %(row_date, end_hour, end_minute, end_second)
+
+        # Check if the new time does not overlap another one
+        df = self.database_interface.get_dataframe_all_times()
+        df["time"] = pd.to_datetime(df["time"])
+        df["last_time"] = df["time"].shift()
+        df = df[ df["action_type"] == "END" ]
+
+        begin_datetime = pd.to_datetime(begin_time)
+        end_datetime = pd.to_datetime(end_time)
+
+        if not df[ ((df["last_time"] > begin_datetime) & (df["last_time"] < end_datetime)) | ((df["time"] > begin_datetime) & (df["time"] < end_datetime)) ].empty:
+            messagebox.showerror("Error", "The new time overlap another block")
+            return
+
+        if not df[ ((begin_datetime > df["last_time"]) & (begin_datetime < df["time"])) | ((end_datetime > df["last_time"]) & (end_datetime < df["time"])) ].empty:
+            messagebox.showerror("Error", "The new time overlap another block")
+            return
 
         # Get all the project names
         project_names = self.database_interface.get_project_names()
