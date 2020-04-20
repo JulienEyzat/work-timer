@@ -14,13 +14,16 @@ class ModifyCalendarController:
         self.caller_window = caller_window
 
         # Initial values of times
-        self.init_begin_time = self.database_interface.get_begin_row_from_time(clicked_time)
-        self.init_end_time = self.database_interface.get_end_row_from_time(clicked_time)
+        if modify_type == "update_or_delete":
+            self.init_begin_time = self.database_interface.get_begin_row_from_time(clicked_time)
+            self.init_end_time = self.database_interface.get_end_row_from_time(clicked_time)
+            current_project_name = self.init_begin_time["project_name"]
+        elif modify_type == "add":
+            current_project_name = None
 
         # Create the window
         begin_printed_time, end_printed_time = self.get_printed_times(clicked_time, modify_type)
         project_names = self.database_interface.get_project_names()
-        current_project_name = self.init_begin_time["project_name"]
         self.modify_calendar_window = ModifyCalendarWindow(parent_window, modify_type, begin_printed_time, end_printed_time, project_names, current_project_name)
 
         # Modify buttons
@@ -86,13 +89,29 @@ class ModifyCalendarController:
         begin_datetime = pd.to_datetime(begin_time)
         end_datetime = pd.to_datetime(end_time)
 
-        if not df[ ((df["last_time"] > begin_datetime) & (df["last_time"] < end_datetime)) | ((df["time"] > begin_datetime) & (df["time"] < end_datetime)) ].empty:
-            messagebox.showerror("Error", "The new time overlap another block")
-            return
+        print(df[ ((df["last_time"] > begin_datetime) & (df["last_time"] < end_datetime)) | ((df["time"] > begin_datetime) & (df["time"] < end_datetime)) ])
+        print(df[ ((begin_datetime > df["last_time"]) & (begin_datetime < df["time"])) | ((end_datetime > df["last_time"]) & (end_datetime < df["time"])) ])
 
-        if not df[ ((begin_datetime > df["last_time"]) & (begin_datetime < df["time"])) | ((end_datetime > df["last_time"]) & (end_datetime < df["time"])) ].empty:
-            messagebox.showerror("Error", "The new time overlap another block")
-            return
+        problematic_blocks = df[ ((df["last_time"] > begin_datetime) & (df["last_time"] < end_datetime)) | ((df["time"] > begin_datetime) & (df["time"] < end_datetime)) ]
+        if not problematic_blocks.empty:
+            if modify_type in ["update", "delete"]:
+                if not problematic_blocks["last_time"].min() == pd.to_datetime(self.init_begin_time["time"]) or not problematic_blocks["time"].max() == pd.to_datetime(self.init_end_time["time"]):
+                    messagebox.showerror("Error", "The new time overlap another block")
+                    return
+            else:
+                messagebox.showerror("Error", "The new time overlap another block")
+                return
+
+
+        problematic_blocks = df[ ((begin_datetime > df["last_time"]) & (begin_datetime < df["time"])) | ((end_datetime > df["last_time"]) & (end_datetime < df["time"])) ]
+        if not problematic_blocks.empty:
+            if modify_type in ["update", "delete"]:
+                if not problematic_blocks["last_time"].min() == pd.to_datetime(self.init_begin_time["time"]) or not problematic_blocks["time"].max() == pd.to_datetime(self.init_end_time["time"]):
+                    messagebox.showerror("Error", "The new time overlap another block")
+                    return
+            else:
+                messagebox.showerror("Error", "The new time overlap another block")
+                return
 
         # Get all the project names
         project_names = self.database_interface.get_project_names()
